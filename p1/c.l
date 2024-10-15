@@ -47,6 +47,11 @@ int comm_beg = 0; /* line number for beginning of comment */
 <STRING>. yymore();
 <STRING>\n {fprintf(stderr, "Niezamknięty napis otwarty w wierszu %d\n", str_beg); BEGIN(INITIAL);}
 
+ /* detection of strings ".." without using start conditions*/
+
+ /* \"[^\n\"]*\" return process_token(yytext, "STRING_CONST", yytext, STRING_CONST); */
+ /* \"[^\n\"]*\n fprintf(stderr, "Niezamknięty napis otwarty w wierszu %d\n", yylineno - 1); */
+
  /* detection of directives in form of #include <name.h> and #include "name.h" */
  /* using start conditions */
  /* ..................... */
