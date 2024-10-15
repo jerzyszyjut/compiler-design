@@ -25,45 +25,77 @@ int comm_beg = 0; /* line number for beginning of comment */
  /* removal of multi-line comments using start conditions */
  /* ..................... */
 
-
+<INITIAL>"/*" {comm_beg = yylineno; BEGIN(COMMENT);}
+<COMMENT>"*/" BEGIN(INITIAL);
+<COMMENT>.|\n ;
 
  /* removal of one-line comments using start conditions */
  /* ..................... */
 
+\/\/[^\n]* ;
 
  /* detection of error: unexpected closing of comment */
  /* ..................... */
 
-
-
+<INITIAL>"*/" fprintf(stderr, "Nieoczekiwane zamknięcie komentarza w wierszu %d\n", yylineno);
 
  /* detection of strings ".." using start conditions */
  /* ..................... */
 
+<INITIAL>\" {str_beg = yylineno; BEGIN(STRING); yymore();}
+<STRING>\" {BEGIN(INITIAL); return process_token(yytext, "STRING_CONST", yytext, STRING_CONST);}
+<STRING>. yymore();
+<STRING>\n {fprintf(stderr, "Niezamknięty napis otwarty w wierszu %d\n", str_beg); BEGIN(INITIAL);}
 
  /* detection of directives in form of #include <name.h> and #include "name.h" */
  /* using start conditions */
  /* ..................... */
 
+<INITIAL>\#include[ \t]+(<|\")[^(>|\")]*(>|\") printf("Przetwarzanie dyrektywy %s\n", yytext);
 
 
  /* detection of keywords */
+"char" return process_token(yytext, "KW_CHAR", "", KW_CHAR);
+"unsigned" return process_token(yytext, "KW_UNSIGNED", "", KW_UNSIGNED);
+"short" return process_token(yytext, "KW_SHORT", "", KW_SHORT);
+"int" return process_token(yytext, "KW_INT", "", KW_INT);
+"double" return process_token(yytext, "KW_DOUBLE", "", KW_DOUBLE);
+"void" return process_token(yytext, "KW_VOID", "", KW_VOID);
+"for" return process_token(yytext, "KW_FOR", "", KW_FOR);
+"long" return process_token(yytext, "KW_LONG", "", KW_LONG);
+"struct" return process_token(yytext, "KW_STRUCT", "", KW_STRUCT);
+"float" return process_token(yytext, "KW_FLOAT", "", KW_FLOAT);
+"if" return process_token(yytext, "KW_IF", "", KW_IF);
+"else" return process_token(yytext, "KW_ELSE", "", KW_ELSE);
+"while" return process_token(yytext, "KW_WHILE", "", KW_WHILE);
+"do" return process_token(yytext, "KW_DO", "", KW_DO);
+
  /* ..................... */
 
 
  /* detection of symbols descirbed with complex regular expressions */
  /* ..................... */
 
+[0-9]+ return process_token(yytext, "INTEGER_CONST", yytext, INTEGER_CONST);
+[0-9]*\.[0-9]*(e[+|-]?[0-9]+)? return process_token(yytext, "FLOAT_CONST", yytext, FLOAT_CONST);
+\'[^\'\n]\' return process_token(yytext, "CHARACTER_CONST", yytext, CHARACTER_CONST);
+
+[a-zA-Z][a-zA-Z0-9]* return process_token(yytext, "IDENT", yytext, IDENT);
 
  /* cutting out white space */
+[ \n\t]+ ;
+
  /* ..................... */
 
 
  /* multicharacter operators, e.g. ++ */ 
+"++" return process_token(yytext, "INC", "", INC);
+"<=" return process_token(yytext, "LE", "", LE);
  /* ..................... */
 
 
  /* single character operator and punctuation */
+[\+\-\*\/\;\,\=\(\)\{\}\.\[\]\<] return process_token(yytext, yytext, "", yytext[0]);
  /* ..................... */
 
 
@@ -143,12 +175,10 @@ int yywrap( void )
      - we print an error message */
   /* ..................... */
   if (YY_START == COMMENT) {
-    fprintf(stderr, "Unfinished comment opened in line %d\n", comm_beg);
+    fprintf(stderr, "Brak zamknięcia komentarza otwartego w wierszu %d\n", comm_beg);
   }
   if (YY_START == STRING) {
-    fprintf(stderr, "Unfinished string opened in line %d\n", str_beg);
+    fprintf(stderr, "Niezamknięty napis otwarty w wierszu %d\n", str_beg);
   }
   return 1;
 }
-
-
