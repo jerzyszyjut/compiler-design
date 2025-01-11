@@ -3,16 +3,16 @@
 #include <string.h>
 #include "defs.h"
 
-int level = 0;
-
-int pos = 0;
-
 const int INDENT_LENGTH = 2, LINE_WIDTH = 78;
 
-void indent(void);
-
+int level = 0;
+int pos = 0;
 int was_character = 0, endline_inserted = 0;
-void add_word(char *dest, char *src);
+char current_word[MAX_STR_LEN + 1];
+
+void indent(void);
+void add_char(char *dest, char *src);
+void put_word();
 void yyerror(const char *txt);
 int yylex();
 %}
@@ -21,9 +21,9 @@ int yylex();
    char s[MAX_STR_LEN + 1];
 }
 
-%token<s> PI_TAG_BEG PI_TAG_END STAG_BEG ETAG_BEG TAG_END ETAG_END CHAR S ATTRIBUTE
+%token<s> PI_TAG_BEG PI_TAG_END STAG_BEG ETAG_BEG TAG_END ETAG_END CHAR S ATTRIBUTE_NAME EQUAL_SIGN ATTRIBUTE_VALUE
 
-%type<s> start_tag end_tag word
+%type<s> start_tag end_tag word attribute_list
 
 %debug
 %define parse.error verbose
@@ -41,29 +41,20 @@ processing_instruction_list: processing_instruction
    | processing_instruction_list processing_instruction
    ;
 
-processing_instruction: processing_instruction_beg processing_instruction_rest
+processing_instruction: PI_TAG_BEG attribute_list PI_TAG_END {
+   indent();
+   printf("<?%s%s?>\n", $1, $2);
+   was_character = 0;
+}
    ; 
-
-processing_instruction_beg: PI_TAG_BEG {
-   indent();
-   printf("<?%s", $1);
-   was_character = 0;
-}
-
-processing_instruction_rest: attribute_list PI_TAG_END {
-   indent();
-   printf("?>\n");
-   was_character = 0;
-}
-   ;
 
 element: empty_tag
    | tag_pair
    ;
 
-empty_tag: STAG_BEG ETAG_END {
+empty_tag: STAG_BEG attribute_list ETAG_END {
    indent();
-   printf("<%s/>\n", $1);
+   printf("<%s%s/>\n", $1, $2);
    pos = 0;
    was_character = 0;
 }
@@ -74,6 +65,10 @@ tag_pair: start_tag content end_tag {
       yyerror("Start and end tags do not match");
    }
 
+   if (strlen(current_word) > 0) {
+      put_word();
+   }
+
    level--;
    indent();
    printf("</%s>\n", $3);
@@ -82,44 +77,37 @@ tag_pair: start_tag content end_tag {
 }
    ;
 
-start_tag: start_tag_beg attribute_list start_tag_end {
+start_tag: STAG_BEG attribute_list TAG_END {
+   indent();
+   printf("<%s%s>\n", $1, $2);
    level++;
    pos = 0;
    was_character = 0;
 }
    ;
 
-start_tag_beg: STAG_BEG {
-   indent();
-   printf("<%s", $1);
+attribute_list: attribute_list ATTRIBUTE_NAME EQUAL_SIGN ATTRIBUTE_VALUE { 
+   strncat($$, " ", MAX_STR_LEN);
+   strncat($$, $2, MAX_STR_LEN);
+   strncat($$, "=", MAX_STR_LEN);
+   strncat($$, $4, MAX_STR_LEN);
 }
-   ;
-
-start_tag_end: TAG_END
-{
-   printf(">\n");
-}
-
-attribute_list: attribute_list ATTRIBUTE { printf(" %s", $2); }
-   | %empty
+   | %empty { $$[0] = '\0'; }
    ;
 
 end_tag: ETAG_BEG TAG_END
    ;
 
-content: element
+content: content element
    | word
-   | content element
-   | content word
-   | content '\n' 
    | %empty
    ;
 
-word: CHAR { add_word($$, $1); }
-   | S { add_word($$, $1); }
-   | word CHAR { add_word($$, $2); }
-   | word S { add_word($$, $2); }
-   | word '\n'{ add_word($$, "\n"); }
+word: CHAR { add_char($$, $1); }
+   | S { add_char($$, $1); }
+   | word CHAR { add_char($$, $2); }
+   | word S { add_char($$, $2); }
+   | word '\n'{ add_char($$, "\n"); }
    ;
 
 %%
@@ -136,31 +124,31 @@ void indent(void)
       printf("\n");
       pos = 0;
    }
-   int i;
-   for (i = 0; i < level * INDENT_LENGTH; i++) {
+   for (int i = 0; i < level * INDENT_LENGTH; i++) {
       printf(" ");
       pos++;
    }
 }
 
-void add_word(char *dest, char *src)
+void add_char(char *dest, char *src)
 {
-   if ( pos == 0 ) {
-		indent();
-	}
-
-	printf("%s", src);
-	pos++;
-
+   if (strlen(current_word) + strlen(src) >= LINE_WIDTH) {
+      put_word();
+      indent();
+   }
+   strncat(current_word, src, MAX_STR_LEN);
    was_character = 1;
-   
-   if (pos == LINE_WIDTH) {
-		pos = 0;
-	}
-   else if (src[0] == '\n') {
-		pos = 0;
-      was_character = 0;
-	}	
+   pos += strlen(src);
+   if (pos >= LINE_WIDTH) {
+      put_word();
+      indent();
+   }	
+}
+
+void put_word()
+{
+   printf("%s", current_word);
+   current_word[0] = '\0';
 }
 
 void yyerror( const char *txt )

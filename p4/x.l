@@ -11,7 +11,7 @@ int comm_beg = 0;
 
 identifier [a-zA-Z_][a-zA-Z0-9_]*
 
-%x ST_COMMENT ST_PI ST_TAG
+%x ST_COMMENT ST_PI ST_TAG ST_ATTRIBUTE STI_ATTRIBUTE
 %%
 
 [ \t\r\n]*"<!--" {comm_beg = yylineno; BEGIN(ST_COMMENT);};
@@ -22,7 +22,13 @@ identifier [a-zA-Z_][a-zA-Z0-9_]*
 
 "<?"{identifier} { instruction_beg = yylineno; strncpy(yylval.s, yytext + 2, MAX_STR_LEN); BEGIN(ST_PI); return PI_TAG_BEG; };
 
-<ST_PI>{identifier}"="[ \t\r\n]*\"[^\"]*\" { strncpy(yylval.s, yytext, MAX_STR_LEN); return ATTRIBUTE; };
+<ST_PI>{identifier} { strncpy(yylval.s, yytext, MAX_STR_LEN); BEGIN(STI_ATTRIBUTE); return ATTRIBUTE_NAME; };
+
+<STI_ATTRIBUTE>\"[^\"]*\" { strncpy(yylval.s, yytext, MAX_STR_LEN); BEGIN(ST_PI); return ATTRIBUTE_VALUE; };
+
+<STI_ATTRIBUTE>"=" { return EQUAL_SIGN; };
+
+<STI_ATTRIBUTE>.|\n ;
 
 <ST_PI>.|\n ;
 
@@ -32,7 +38,13 @@ identifier [a-zA-Z_][a-zA-Z0-9_]*
 
 "</"{identifier} { instruction_beg = yylineno; strncpy(yylval.s, yytext + 2, MAX_STR_LEN); BEGIN(ST_TAG); return ETAG_BEG; };
 
-<ST_TAG>{identifier}[\t\r\n]*"="[ \t\r\n]*\"[^\"]*\" { strncpy(yylval.s, yytext, MAX_STR_LEN); return ATTRIBUTE; };
+<ST_TAG>{identifier} { strncpy(yylval.s, yytext, MAX_STR_LEN); BEGIN(ST_ATTRIBUTE); return ATTRIBUTE_NAME; };
+
+<ST_ATTRIBUTE>\"[^\"]*\" { strncpy(yylval.s, yytext, MAX_STR_LEN); BEGIN(ST_TAG); return ATTRIBUTE_VALUE; };
+
+<ST_ATTRIBUTE>"=" { return EQUAL_SIGN; };
+
+<ST_ATTRIBUTE>.|\n ;
 
 <ST_TAG>">"[ \t\r\n]* {BEGIN(INITIAL); return TAG_END;};
 

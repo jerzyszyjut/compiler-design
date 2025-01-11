@@ -2,10 +2,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Root x="1" y="1" > <!-- para znacznik�w -->
 	<Elem1 a="2">
-	A
-
+	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+	aaaaaaaaaaaaaaaaaaaa aaaaaaaaaaaaaaaaaaaa aaaaaaaaaaaaaaaaaaaa aaaaaaaaaaaaaaaaaaaa
 	n
 	</Elem1>
-		<Elem3 b = "3" /> <!-- pusty -->
+		<Elem3 b= "3" /> <!-- pusty -->
 	<Elem2>B</Elem2> <!-- b��d!! -->
 </Root>
