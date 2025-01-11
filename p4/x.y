@@ -7,7 +7,7 @@ const int INDENT_LENGTH = 2, LINE_WIDTH = 78;
 
 int level = 0;
 int pos = 0;
-int was_character = 0, endline_inserted = 0;
+int was_character = 0;
 char current_word[MAX_STR_LEN + 1];
 
 void indent(void);
@@ -15,6 +15,7 @@ void add_char(char *dest, char *src);
 void put_word();
 void yyerror(const char *txt);
 int yylex();
+
 %}
 %union
 {
@@ -55,7 +56,6 @@ element: empty_tag
 empty_tag: STAG_BEG attribute_list ETAG_END {
    indent();
    printf("<%s%s/>\n", $1, $2);
-   pos = 0;
    was_character = 0;
 }
    ;
@@ -67,12 +67,12 @@ tag_pair: start_tag content end_tag {
 
    if (strlen(current_word) > 0) {
       put_word();
+      printf("\n");
    }
 
    level--;
    indent();
    printf("</%s>\n", $3);
-   pos = 0;
    was_character = 0;
 }
    ;
@@ -81,8 +81,6 @@ start_tag: STAG_BEG attribute_list TAG_END {
    indent();
    printf("<%s%s>\n", $1, $2);
    level++;
-   pos = 0;
-   was_character = 0;
 }
    ;
 
@@ -120,34 +118,44 @@ int main( void )
 
 void indent(void)
 {
-   if (was_character) {
-      printf("\n");
-      pos = 0;
-   }
+   pos = 0;
    for (int i = 0; i < level * INDENT_LENGTH; i++) {
       printf(" ");
-      pos++;
    }
 }
 
 void add_char(char *dest, char *src)
 {
-   if (strlen(current_word) + strlen(src) >= LINE_WIDTH) {
-      put_word();
+   strncat(current_word, src, MAX_STR_LEN); 
+
+   if (was_character == 0) {
       indent();
    }
-   strncat(current_word, src, MAX_STR_LEN);
+
    was_character = 1;
-   pos += strlen(src);
-   if (pos >= LINE_WIDTH) {
-      put_word();
-      indent();
-   }	
+   if (level * INDENT_LENGTH + pos + strlen(current_word) >= LINE_WIDTH) {
+      if (pos == 0) {
+         put_word();
+         printf("\n");
+         indent();
+      } else {
+         printf("\n");
+         indent();
+      }
+   } else {
+      if (src[0] == ' ') {
+         put_word();
+      } else if (src[0] == '\n') {
+         put_word();
+         was_character = 0;
+      }
+   }   
 }
 
 void put_word()
 {
    printf("%s", current_word);
+   pos += strlen(current_word);
    current_word[0] = '\0';
 }
 
