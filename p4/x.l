@@ -22,6 +22,8 @@ identifier [a-zA-Z_][a-zA-Z0-9_]*
 
 "<?"{identifier} { instruction_beg = yylineno; strncpy(yylval.s, yytext + 2, MAX_STR_LEN); BEGIN(ST_PI); return PI_TAG_BEG; };
 
+<ST_PI>{identifier}"="[ \t\r\n]*\"[^\"]*\" { strncpy(yylval.s, yytext, MAX_STR_LEN); return ATTRIBUTE; };
+
 <ST_PI>.|\n ;
 
 <ST_PI>"?>"[ \t\r\n]* {BEGIN(INITIAL); return PI_TAG_END;};
@@ -29,6 +31,8 @@ identifier [a-zA-Z_][a-zA-Z0-9_]*
 "<"{identifier} { instruction_beg = yylineno; strncpy(yylval.s, yytext + 1, MAX_STR_LEN); BEGIN(ST_TAG); return STAG_BEG; };
 
 "</"{identifier} { instruction_beg = yylineno; strncpy(yylval.s, yytext + 2, MAX_STR_LEN); BEGIN(ST_TAG); return ETAG_BEG; };
+
+<ST_TAG>{identifier}[\t\r\n]*"="[ \t\r\n]*\"[^\"]*\" { strncpy(yylval.s, yytext, MAX_STR_LEN); return ATTRIBUTE; };
 
 <ST_TAG>">"[ \t\r\n]* {BEGIN(INITIAL); return TAG_END;};
 

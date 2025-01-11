@@ -1,19 +1,14 @@
 %{
-// 3.1.1
 #include <stdio.h> 
 #include <string.h>
 #include "defs.h"
 
-// 3.1.2
 int level = 0;
 
-// 3.1.3
 int pos = 0;
 
-// 3.1.4
 const int INDENT_LENGTH = 2, LINE_WIDTH = 78;
 
-// 3.1.5
 void indent(void);
 
 int was_character = 0, endline_inserted = 0;
@@ -21,16 +16,13 @@ void add_word(char *dest, char *src);
 void yyerror(const char *txt);
 int yylex();
 %}
-// 3.1.6
 %union
 {
    char s[MAX_STR_LEN + 1];
 }
 
-// 3.1.7
-%token<s> PI_TAG_BEG PI_TAG_END STAG_BEG ETAG_BEG TAG_END ETAG_END CHAR S
+%token<s> PI_TAG_BEG PI_TAG_END STAG_BEG ETAG_BEG TAG_END ETAG_END CHAR S ATTRIBUTE
 
-// 3.1.8
 %type<s> start_tag end_tag word
 
 %debug
@@ -38,33 +30,37 @@ int yylex();
 
 %%
 
-// 3.2.1
 document: element
    | prolog element
    | error
    ;
 
-// 3.2.2
 prolog: processing_instruction_list;
 
 processing_instruction_list: processing_instruction
    | processing_instruction_list processing_instruction
    ;
 
-// 3.2.3
-processing_instruction: PI_TAG_BEG PI_TAG_END {
+processing_instruction: processing_instruction_beg processing_instruction_rest
+   ; 
+
+processing_instruction_beg: PI_TAG_BEG {
    indent();
-   printf("<?%s?>\n", $1);
+   printf("<?%s", $1);
+   was_character = 0;
+}
+
+processing_instruction_rest: attribute_list PI_TAG_END {
+   indent();
+   printf("?>\n");
    was_character = 0;
 }
    ;
 
-// 3.2.4
 element: empty_tag
    | tag_pair
    ;
 
-// 3.2.5
 empty_tag: STAG_BEG ETAG_END {
    indent();
    printf("<%s/>\n", $1);
@@ -73,7 +69,6 @@ empty_tag: STAG_BEG ETAG_END {
 }
    ;
 
-// 3.2.6
 tag_pair: start_tag content end_tag {
    if (strcmp($1, $3) != 0) {
       yyerror("Start and end tags do not match");
@@ -87,21 +82,31 @@ tag_pair: start_tag content end_tag {
 }
    ;
 
-// 3.2.7
-start_tag: STAG_BEG TAG_END {
-   indent();
-   printf("<%s>\n", $1);
+start_tag: start_tag_beg attribute_list start_tag_end {
    level++;
    pos = 0;
    was_character = 0;
 }
    ;
 
-// 3.2.8
+start_tag_beg: STAG_BEG {
+   indent();
+   printf("<%s", $1);
+}
+   ;
+
+start_tag_end: TAG_END
+{
+   printf(">\n");
+}
+
+attribute_list: attribute_list ATTRIBUTE { printf(" %s", $2); }
+   | %empty
+   ;
+
 end_tag: ETAG_BEG TAG_END
    ;
 
-// 3.2.9
 content: element
    | word
    | content element
