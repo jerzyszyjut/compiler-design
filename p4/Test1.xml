@@ -1,0 +1,6 @@
+<!-- Program testowy 1 -->
+<?xml version="1.0" encoding="utf-8"?>
+<Root> <!-- element g³ówny -->
+	<Elem1>A</Elem1> <!-- element 1 -->
+	<Elem2>B</Elem2> <!-- element 2 -->
+</Root>
