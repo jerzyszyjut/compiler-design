@@ -14,8 +14,8 @@ identifier [a-zA-Z_][a-zA-Z0-9_]*
 %x ST_COMMENT ST_PI ST_TAG
 %%
 
-"<!--" {comm_beg = yylineno; BEGIN(ST_COMMENT);};
-<ST_COMMENT>[^-]"-->" BEGIN(INITIAL);
+[ \t\r\n]*"<!--" {comm_beg = yylineno; BEGIN(ST_COMMENT);};
+<ST_COMMENT>[^-]"-->"[ \t\r\n]* BEGIN(INITIAL);
 <ST_COMMENT>.|\n ;
 
 "-->" {printf("Unexpected end of comment in line %d\n", comm_beg);};
@@ -24,17 +24,17 @@ identifier [a-zA-Z_][a-zA-Z0-9_]*
 
 <ST_PI>.|\n ;
 
-<ST_PI>"?>" {BEGIN(INITIAL); return PI_TAG_END;};
+<ST_PI>"?>"[ \t\r\n]* {BEGIN(INITIAL); return PI_TAG_END;};
 
 "<"{identifier} { instruction_beg = yylineno; strncpy(yylval.s, yytext + 1, MAX_STR_LEN); BEGIN(ST_TAG); return STAG_BEG; };
 
 "</"{identifier} { instruction_beg = yylineno; strncpy(yylval.s, yytext + 2, MAX_STR_LEN); BEGIN(ST_TAG); return ETAG_BEG; };
 
-<ST_TAG>">" {BEGIN(INITIAL); return TAG_END;};
+<ST_TAG>">"[ \t\r\n]* {BEGIN(INITIAL); return TAG_END;};
 
 <ST_TAG>. ;
 
-<ST_TAG>"/>" {BEGIN(INITIAL); return ETAG_END;};
+<ST_TAG>"/>"[ \t\r\n]* {BEGIN(INITIAL); return ETAG_END;};
 
 "&lt;" { strncpy(yylval.s, "<", MAX_STR_LEN); return CHAR; };
 "&gt;" { strncpy(yylval.s, ">", MAX_STR_LEN); return CHAR; };
@@ -43,9 +43,8 @@ identifier [a-zA-Z_][a-zA-Z0-9_]*
 "&quot;" { strncpy(yylval.s, "\"", MAX_STR_LEN); return CHAR; };
 
 ^[ \t]+ ;
-[ \t]+$ ;
 
-[ \r\t]*\n[ \r\t] { return '\n'; };
+\n { return '\n'; };
 
 \r ;
 
@@ -53,7 +52,6 @@ identifier [a-zA-Z_][a-zA-Z0-9_]*
 
 . { strncpy(yylval.s, yytext, MAX_STR_LEN); return CHAR; };
 
-[ \r\n\t] ; 
 
 %%
 int yywrap( void )

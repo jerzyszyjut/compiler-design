@@ -67,7 +67,7 @@ element: empty_tag
 // 3.2.5
 empty_tag: STAG_BEG ETAG_END {
    indent();
-   printf("<%s/>", $1);
+   printf("<%s/>\n", $1);
    pos = 0;
    was_character = 0;
 }
@@ -81,7 +81,7 @@ tag_pair: start_tag content end_tag {
 
    level--;
    indent();
-   printf("</%s>", $3);
+   printf("</%s>\n", $3);
    pos = 0;
    was_character = 0;
 }
@@ -145,13 +145,11 @@ void add_word(char *dest, char *src)
 	}
 
 	printf("%s", src);
-   printf("%d", src[0]);
 	pos++;
 
    was_character = 1;
    
    if (pos == LINE_WIDTH) {
-		printf("\n");
 		pos = 0;
 	}
    else if (src[0] == '\n') {
